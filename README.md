@@ -1,23 +1,23 @@
 # AgreementStream
 
-Distributed event router for agreement lifecycle events. Routes inbound events to a configured messaging backend with idempotent handlers, retry/backoff, and dead-letter publishing.
+Small event router for agreement lifecycle events. You POST an event, it goes out on a configured topic. Handlers are idempotent, retries back off, and anything that still fails lands in a dead-letter queue.
 
 ## Stack
 
 - Java 17, Spring Boot 3
-- GCP Pub/Sub (emulator-friendly) or in-memory mock
-- Azure Event Hubs adapter interface (mock implementation for local dev)
-- H2 idempotency store, Prometheus metrics, JSON logging
+- GCP Pub/Sub (works with the emulator) or an in-memory mock
+- Azure Event Hubs adapter (mock locally; swap in `EventProcessorClient` for prod)
+- H2 for idempotency tracking, Prometheus metrics, JSON logs
 
-## Architecture
+## How it works
 
 ```text
 POST /api/events -> EventRouterService -> EventPublisher -> outbound topic
                               |-> processed_events (idempotency)
-                              +-> DLQ after retry exhaustion
+                              +-> DLQ after retries run out
 ```
 
-Provider selection is config-driven:
+Pick the backend in config:
 
 ```yaml
 agreementstream:
@@ -25,7 +25,7 @@ agreementstream:
     provider: mock   # mock | gcp | azure
 ```
 
-## Local development
+## Running it locally
 
 ### Mock mode (default)
 
@@ -42,11 +42,11 @@ curl -X POST http://localhost:8080/api/events \
 docker compose up --build
 ```
 
-Metrics: `http://localhost:8080/actuator/prometheus`
+Prometheus metrics: `http://localhost:8080/actuator/prometheus`
 
-## Design notes
+## Notes
 
-Adapter layout is inspired by portable messaging abstractions in open-source cloud messaging libraries. Azure Event Hubs uses a mock adapter locally; production deployments can swap in an `EventProcessorClient` implementation without changing router code.
+The adapter layout borrows ideas from portable messaging libraries. Router code stays the same whether you run mock, GCP, or Azure. Only the adapter changes.
 
 ## References
 
