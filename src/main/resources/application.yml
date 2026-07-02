@@ -1,0 +1,61 @@
+spring:
+  application:
+    name: agreementstream
+  autoconfigure:
+    exclude:
+      - com.google.cloud.spring.autoconfigure.core.GcpContextAutoConfiguration
+      - com.google.cloud.spring.autoconfigure.pubsub.GcpPubSubAutoConfiguration
+  cloud:
+    gcp:
+      pubsub:
+        enabled: false
+  datasource:
+    url: jdbc:h2:mem:agreementstream;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+agreementstream:
+  messaging:
+    provider: mock
+    inbound-topic: agreements-inbound
+    outbound-topic: agreements-outbound
+    dlq-topic: agreements-dlq
+  router:
+    max-attempts: 3
+    backoff-millis: 100
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus,info
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    tags:
+      application: agreementstream
+
+logging:
+  level:
+    root: INFO
+    dev.krishnanand.agreementstream: DEBUG
+
+---
+spring:
+  config:
+    activate:
+      on-profile: gcp
+  autoconfigure:
+    exclude: []
+  cloud:
+    gcp:
+      project-id: local-dev
+      pubsub:
+        enabled: true
+        emulator-host: ${PUBSUB_EMULATOR_HOST:localhost:8085}
+
+agreementstream:
+  messaging:
+    provider: gcp
